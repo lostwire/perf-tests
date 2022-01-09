@@ -41,7 +41,7 @@ FROM debian:bullseye-slim
 RUN set -eux; \
     sed -i 's/ main$/ main contrib non-free/g' /etc/apt/sources.list; \
     apt-get update; \
-    apt-get install -y --no-install-recommends ca-certificates curl wget iperf3 netperf; \
+    apt-get install -y --no-install-recommends ca-certificates procps iproute2 curl wget iperf3 netperf; \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=gobuilder /src/nptests /usr/bin/

@@ -35,6 +35,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"runtime"
 	"strconv"
 	"sync"
 	"time"
@@ -51,6 +52,7 @@ var port string
 var host string
 var worker string
 var kubenode string
+var parallelStreams int
 var podname string
 
 var workerStateMap map[string]*workerState
@@ -76,8 +78,8 @@ const (
 	outputCaptureFile    = "/tmp/output.txt"
 	mssMin               = 96
 	mssMax               = 1460
-	mssStepSize          = 256
-	parallelStreams      = "8"
+	mssStepSize          = 512
+	parallelStreamsMax   = 8
 	rpcServicePort       = "5202"
 	localhostIPv4Address = "127.0.0.1"
 )
@@ -589,6 +591,20 @@ func isIPv6(address string) bool {
 
 // startWork : Entry point to the worker infinite loop
 func startWork() {
+	nCPU := runtime.NumCPU()
+
+	if nCPU <= parallelStreamsMax*2 {
+		if nCPU < 4 {
+			parallelStreams = 2
+		} else {
+			parallelStreams = nCPU / 2
+		}
+	} else {
+		parallelStreams = parallelStreamsMax
+	}
+
+	fmt.Printf("Number of parallelStreams is %d\n", parallelStreams)
+
 	for true {
 		var timeout time.Duration
 		var client *rpc.Client
@@ -658,19 +674,19 @@ func netperfServer() {
 func iperfClient(serverHost, serverPort string, mss int, workItemType int) (rv string) {
 	switch {
 	case workItemType == iperfTCPTest:
-		output, success := cmdExec(iperf3Path, []string{iperf3Path, "-c", serverHost, "-V", "-N", "-i", "30", "-t", "10", "-f", "m", "-Z", "-P", parallelStreams, "-M", strconv.Itoa(mss)}, 15)
+		output, success := cmdExec(iperf3Path, []string{iperf3Path, "-c", serverHost, "-V", "-N", "-i", "3", "-t", "10", "-f", "m", "-Z", "-P", strconv.Itoa(parallelStreams), "-M", strconv.Itoa(mss)}, 15)
 		if success {
 			rv = output
 		}
 
 	case workItemType == iperfSctpTest:
-		output, success := cmdExec(iperf3Path, []string{iperf3Path, "-c", serverHost, "-V", "-N", "-i", "30", "-t", "10", "-f", "m", "-Z", "-P", parallelStreams, "-M", strconv.Itoa(mss), "--sctp"}, 15)
+		output, success := cmdExec(iperf3Path, []string{iperf3Path, "-c", serverHost, "-V", "-N", "-i", "3", "-t", "10", "-f", "m", "-Z", "-P", strconv.Itoa(parallelStreams), "-M", strconv.Itoa(mss)}, 15)
 		if success {
 			rv = output
 		}
 
 	case workItemType == iperfUDPTest:
-		output, success := cmdExec(iperf3Path, []string{iperf3Path, "-c", serverHost, "-i", "30", "-t", "10", "-f", "m", "-b", "0", "-u"}, 15)
+		output, success := cmdExec(iperf3Path, []string{iperf3Path, "-c", serverHost, "-i", "3", "-t", "10", "-f", "m", "-b", "0", "-u"}, 15)
 		if success {
 			rv = output
 		}

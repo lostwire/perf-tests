@@ -65,13 +65,14 @@ var (
 )
 
 func init() {
+	homeDir, _ := os.UserHomeDir()
 	flag.BoolVar(&hostnetworking, "hostnetworking", false,
 		"(boolean) Enable Host Networking Mode for PODs")
 	flag.IntVar(&iterations, "iterations", 1,
 		"Number of iterations to run")
 	flag.StringVar(&tag, "tag", runUUID, "CSV file suffix")
 	flag.StringVar(&netperfImage, "image", "ghcr.io/lostwire/netperf-latest", "Docker image used to run the network tests")
-	flag.StringVar(&kubeConfig, "kubeConfig", "",
+	flag.StringVar(&kubeConfig, "kubeConfig", homeDir+"/.kube/config",
 		"Location of the kube configuration file ($HOME/.kube/config")
 	flag.BoolVar(&cleanupOnly, "cleanup", false,
 		"(boolean) Run the cleanup resources phase only (use this flag to clean up orphaned resources from a test run)")
